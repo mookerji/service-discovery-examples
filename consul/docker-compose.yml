@@ -1,0 +1,70 @@
+version: '3'
+
+services:
+  registry:
+    image: consul:latest
+    ports:
+    - 8400:8400
+    - 8500:8500
+    command: agent -dev -ui -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect=1 -log-level info
+
+  proxy:
+    build: proxy
+    command: /app/app.py
+    restart: on-failure
+    ports:
+    - 8080:80
+    healthcheck:
+      test: "curl -f http://localhost/healthz"
+      interval: 30s
+      timeout: 180s
+      retries: 3
+    links:
+      - registry
+    depends_on:
+      - registry
+    environment:
+      APP_NAME: app_proxy
+      FLASK_ENV: development
+
+  app_group1:
+    build: node
+    command: /app/app.py
+    restart: on-failure
+    expose:
+    - 80
+    deploy:
+      replicas: 3
+    healthcheck:
+      test: "curl -f http://localhost/healthz"
+      interval: 30s
+      timeout: 180s
+      retries: 3
+    links:
+      - registry
+    depends_on:
+      - registry
+    environment:
+      APP_NAME: app_group1
+      FLASK_ENV: development
+
+  app_group2:
+    build: node
+    command: /app/app.py
+    restart: on-failure
+    expose:
+    - 80
+    deploy:
+      replicas: 3
+    healthcheck:
+      test: "curl -f http://localhost/healthz"
+      interval: 30s
+      timeout: 180s
+      retries: 3
+    links:
+      - registry
+    depends_on:
+      - registry
+    environment:
+      APP_NAME: app_group2
+      FLASK_ENV: development

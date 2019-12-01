@@ -65,6 +65,7 @@ services:
     environment:
       APP_NAME: app_proxy
       FLASK_ENV: development
+      NODE_CONFIG_FILE: /consul-template/data/proxy.yaml
 
   watcher:
     image: hashicorp/consul-template:0.23.0-alpine

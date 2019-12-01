@@ -1,2 +1,5 @@
 Flask>=1.1.1
 structlog
+pyyaml
+readerwriterlock
+attrs

@@ -59,10 +59,14 @@ def healthz():
 
 
 def register_task():
+    """
+    Registers Consul task
+    """
     address = socket.gethostbyname(name)
     data = {
-        'Name': 'node-%s' % name,
-        'Tags': [__id__, APP_NAME],
+        'Name': APP_NAME,
+        'ID': name,
+        'Tags': [__id__, 'node'],
         'Address': address,
         'Port': 80,
         'Check': {
@@ -84,4 +88,4 @@ if __name__ == '__main__':
         log.error('registry-failure')
         sys.exit(1)
     log.info("registry-success")
-    app.run(host='0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80, threaded=True)

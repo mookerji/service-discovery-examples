@@ -1,5 +1,8 @@
 version: '3'
 
+volumes:
+  config_data:
+
 services:
 
   # Consul primary and replicas setup
@@ -38,12 +41,12 @@ services:
     depends_on:
     - registry
 
-  #consul watch -type=service -service=redis -tag=bar /usr/bin/my-service-handler.sh
-
   # Router
 
   proxy:
     build: proxy
+    volumes:
+    - config_data:/consul-template/data
     command: /app/app.py
     restart: on-failure
     ports:
@@ -66,10 +69,10 @@ services:
   watcher:
     image: hashicorp/consul-template:0.23.0-alpine
     volumes:
-    - ./proxy/proxy.ctmpl:/consul-template/config/proxy.ctmpl
-    - /consul-template/data
+    - ./watcher:/consul-template/config
+    - config_data:/consul-template/data
     command: |
-      consul-template -consul-addr=registry:8500 -template "/consul-template/config/proxy.ctmpl:/consul-template/data/proxy.yaml"
+      consul-template -template "/consul-template/config/proxy.ctmpl:/consul-template/data/proxy.yaml" -consul-addr="registry:8500" -log-level info
     restart: always
     links:
     - registry
@@ -77,8 +80,6 @@ services:
     - registry
     - registry1
     - registry2
-
-  # -X POST http://alertmanager:9093/-/reload"
 
   # Apps
 

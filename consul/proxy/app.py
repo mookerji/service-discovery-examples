@@ -82,7 +82,6 @@ def healthz():
     log.info("request", method='GET', route='healthz')
     return 'OK'
 
-
 @app.route('/statusz')
 def statusz():
     log = get_logger()
@@ -90,12 +89,12 @@ def statusz():
     return jsonify(registry.get_config())
 
 
-@app.route('/_hooks/reload_config', methods=['POST'])
+@app.route('/_hooks/reload/config', methods=['POST'])
 def _reload_config():
     log = get_logger()
+    log.info("request", method='POST', route='_hooks/reload/config')
     registry.load_config()
     log.info('registry-reload-success')
-    log.info("request", method='POST', route='_hooks/reload_config')
     return 'OK'
 
 

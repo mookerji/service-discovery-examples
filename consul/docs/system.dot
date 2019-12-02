@@ -14,7 +14,7 @@ digraph {
        config_data [label = "volume:config_data"];
     }
 
-    watcher -> registry;
+    watcher -> registry_read;
     watcher -> config_data;
     proxy -> config_data;
 

@@ -65,7 +65,7 @@ services:
     - registry1
     - registry2
     environment:
-      APP_NAME: app_proxy
+      APP_NAME: proxy
       FLASK_ENV: development
       NODE_CONFIG_FILE: /consul-template/data/proxy.yaml
 

@@ -3,3 +3,4 @@ structlog
 pyyaml
 readerwriterlock
 attrs
+requests

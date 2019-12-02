@@ -8,7 +8,7 @@ import socket
 import sys
 import uuid
 
-from flask import Flask
+from flask import Flask, request
 import requests
 import structlog
 
@@ -36,17 +36,20 @@ def setup_logging():
     log.disabled = True
 
 
-def get_logger():
+def get_logger(request_id=uuid.uuid4()):
     return logger.new(
-        request_id=str(uuid.uuid4()),
+        request_id=str(request_id),
         id=__id__,
         hostname=name,
-        app_name=APP_NAME)
+        app_name=APP_NAME,
+        user_agent=request.headers.get('user-agent'),
+    )
 
 
 @app.route('/')
 def hi():
-    log = get_logger()
+    request_id = request.headers.get('x-request-id')
+    log = get_logger(request_id)
     log.info("request", method='GET', route='/')
     return 'HI'
 

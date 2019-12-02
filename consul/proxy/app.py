@@ -3,14 +3,17 @@
 import logging
 import os
 import platform
+import random
 import sys
 import time
 import uuid
 import yaml
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, after_this_request
 from readerwriterlock import rwlock
+
 import attr
+import requests
 import structlog
 
 app = Flask(__name__)
@@ -38,12 +41,14 @@ def setup_logging():
     log.disabled = True
 
 
-def get_logger():
+def get_logger(request_id=uuid.uuid4()):
     return logger.new(
-        request_id=str(uuid.uuid4()),
+        request_id=str(request_id),
         id=__id__,
         hostname=name,
-        app_name=APP_NAME)
+        app_name=APP_NAME,
+        user_agent=request.headers.get('user-agent'),
+    )
 
 
 @attr.s
@@ -76,11 +81,38 @@ def hi():
     return 'HI'
 
 
+@app.route('/services/<arg>')
+def dispatch(arg):
+    request_id = uuid.uuid4()
+    log = get_logger(request_id)
+    log.info("request", method='GET', route='/', resource=arg)
+
+    @after_this_request
+    def add_header(response):
+        response.headers['x-request-id'] = str(request_id)
+        return response
+
+    config = registry.get_config()
+    if not config['services']:
+        return jsonify(error='no_services_found'), 500
+    # Select a random host from one of the services.
+    for s in config['services']:
+        if s['name'] == arg:
+            num_hosts = len(s['hosts'])
+            addr = s['hosts'][random.randrange(num_hosts)]
+            url = 'http://%s:%d/' % (addr, 80)
+            headers = {'x-request-id': str(request_id), 'user-agent': APP_NAME}
+            log.info("proxy", method='GET', node_addr=addr, service=s['name'])
+            return requests.get(url, headers=headers).text
+    return jsonify(error='invalid_service_name', name=arg), 400
+
+
 @app.route('/healthz')
 def healthz():
     log = get_logger()
     log.info("request", method='GET', route='healthz')
     return 'OK'
+
 
 @app.route('/statusz')
 def statusz():

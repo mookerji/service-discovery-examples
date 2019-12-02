@@ -6,8 +6,8 @@ run:
 format:
 	@find . -type f -name "*.py" | xargs yapf --in-place
 
-.PHONY: clean
-clean:
+.PHONY: stop
+stop:
 	@docker-compose --compatibility down -v
 
 .PHONY: login

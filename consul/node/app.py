@@ -8,7 +8,7 @@ import socket
 import sys
 import uuid
 
-from flask import Flask
+from flask import Flask, request
 import requests
 import structlog
 
@@ -36,17 +36,20 @@ def setup_logging():
     log.disabled = True
 
 
-def get_logger():
+def get_logger(request_id=uuid.uuid4()):
     return logger.new(
-        request_id=str(uuid.uuid4()),
+        request_id=str(request_id),
         id=__id__,
         hostname=name,
-        app_name=APP_NAME)
+        app_name=APP_NAME,
+        user_agent=request.headers.get('user-agent'),
+    )
 
 
 @app.route('/')
 def hi():
-    log = get_logger()
+    request_id = request.headers.get('x-request-id')
+    log = get_logger(request_id)
     log.info("request", method='GET', route='/')
     return 'HI'
 
@@ -59,10 +62,14 @@ def healthz():
 
 
 def register_task():
+    """
+    Registers Consul task
+    """
     address = socket.gethostbyname(name)
     data = {
-        'Name': 'node-%s' % name,
-        'Tags': [__id__, APP_NAME],
+        'Name': APP_NAME,
+        'ID': name,
+        'Tags': [__id__, 'node'],
         'Address': address,
         'Port': 80,
         'Check': {
@@ -84,4 +91,4 @@ if __name__ == '__main__':
         log.error('registry-failure')
         sys.exit(1)
     log.info("registry-success")
-    app.run(host='0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80, threaded=True)

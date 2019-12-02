@@ -1,0 +1,4 @@
+services:{{range services}}
+- name: {{.Name}}
+  hosts:{{range service .Name}}
+  - {{.Address}}{{end}}{{end}}

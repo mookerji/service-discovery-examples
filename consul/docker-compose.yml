@@ -1,70 +1,134 @@
 version: '3'
 
+volumes:
+  config_data:
+
 services:
+
+  # Consul primary and replicas setup
+
   registry:
     image: consul:latest
+    hostname: registry
     ports:
     - 8400:8400
     - 8500:8500
-    command: agent -dev -ui -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect=1 -log-level info
+    - 8600:8600
+    command: |
+      agent -ui -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect 3 -log-level info
+
+  registry1:
+    image: consul:latest
+    hostname: registry1
+    expose:
+    - 8400
+    - 8500
+    - 8600
+    command: |
+      agent -server -retry-join registry -log-level info -bind 0.0.0.0 -client 0.0.0.0
+    depends_on:
+    - registry
+
+  registry2:
+    image: consul:latest
+    hostname: registry2
+    expose:
+    - 8400
+    - 8500
+    - 8600
+    command: |
+      agent -server -retry-join registry -log-level info -bind 0.0.0.0 -client 0.0.0.0
+    depends_on:
+    - registry
+
+  # Router
 
   proxy:
     build: proxy
+    hostname: proxy
+    container_name: proxy
+    volumes:
+    - config_data:/consul-template/data
     command: /app/app.py
     restart: on-failure
     ports:
     - 8080:80
     healthcheck:
-      test: "curl -f http://localhost/healthz"
+      test: curl -f http://localhost/healthz
       interval: 30s
       timeout: 180s
       retries: 3
     links:
-      - registry
+    - registry
     depends_on:
-      - registry
+    - registry
+    - registry1
+    - registry2
     environment:
-      APP_NAME: app_proxy
+      APP_NAME: proxy
       FLASK_ENV: development
+      NODE_CONFIG_FILE: /consul-template/data/proxy.yaml
 
-  app_group1:
+  watcher:
+    image: hashicorp/consul-template:0.23.0-alpine
+    volumes:
+    - ./watcher:/consul-template/config
+    - config_data:/consul-template/data
+    command: |
+      consul-template -config=/consul-template/config/consul-template.hcl
+    restart: always
+    links:
+    - registry
+    - proxy
+    depends_on:
+    - registry
+    - registry1
+    - registry2
+
+  # Apps
+
+  app1:
     build: node
     command: /app/app.py
     restart: on-failure
     expose:
     - 80
     deploy:
-      replicas: 3
+      replicas: 1
     healthcheck:
-      test: "curl -f http://localhost/healthz"
+      test: curl -f http://localhost/healthz
       interval: 30s
       timeout: 180s
       retries: 3
     links:
-      - registry
+    - registry
     depends_on:
-      - registry
+    - registry
+    - registry1
+    - registry2
     environment:
-      APP_NAME: app_group1
+      APP_NAME: app1
       FLASK_ENV: development
 
-  app_group2:
+  app2:
     build: node
     command: /app/app.py
     restart: on-failure
     expose:
     - 80
     deploy:
-      replicas: 3
+      replicas: 1
     healthcheck:
-      test: "curl -f http://localhost/healthz"
+      test: curl -f http://localhost/healthz
       interval: 30s
       timeout: 180s
       retries: 3
     links:
-      - registry
+    - registry
     depends_on:
-      - registry
+    - registry
+    - registry1
+    - registry2
     environment:
-      APP_NAME: app_group2
+      APP_NAME: app2
       FLASK_ENV: development

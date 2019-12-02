@@ -13,3 +13,7 @@ clean:
 .PHONY: login
 login:
 	@docker exec -it  consul_proxy_1 /bin/bash
+
+.PHONY: docs
+docs:
+	@dot -Tpng docs/system.dot > docs/system.png

@@ -1,0 +1,49 @@
+digraph {
+    style = "rounded";
+    rankdir = "TB";
+    node [shape = record, fontname = Helvetica, fontsize = 12];
+    edge [fontname = Helvetica, fontsize = 12];
+
+    client [label = "HTTP client"];
+    client -> proxy;
+
+    subgraph cluster_proxy {
+       label = "HTTP Proxy";
+       proxy [label = "proxy\nroutes = / , /healthz, /statusz, /services"];
+       watcher [label = "watcher"];
+       config_data [label = "volume:config_data"];
+    }
+
+    watcher -> registry;
+    watcher -> config_data;
+    proxy -> config_data;
+
+    subgraph cluster_registry {
+       label = "Consul Registry";
+       registry_write [label = "registry (primary)\n /services/register"];
+       registry_read [label = "registry (primary)\n /services"];
+    }
+
+    subgraph cluster_app1 {
+       rankdir = "TB";
+       label = "Nodes/replicas (App1)";
+       app1_1 [label = "app1_1\nroutes = / , /healthz"];
+       app1_2 [label = "app1_2\nroutes = / , /healthz"];
+    }
+    app1_1 -> registry_write [label = "register()"];
+    app1_2 -> registry_write [label = "register()"];
+    registry_read -> app1_1 [label = "health()"];
+    registry_read -> app1_2 [label = "health()"];
+    proxy -> app1_1 [label = "query()"];
+
+    subgraph cluster_app2 {
+       label = "Nodes/replicas (App2)";
+       app2_1 [label = "app2_1\nroutes = / , /healthz"];
+       app2_2 [label = "app2_2\nroutes = / , /healthz"];
+    }
+    app2_1 -> registry_write [label = "register()"];
+    app2_2 -> registry_write [label = "register()"];
+    registry_read -> app2_1 [label = "health()"];
+    registry_read -> app2_2 [label = "health()"];
+    proxy -> app2_1 [label = "query()"];
+}

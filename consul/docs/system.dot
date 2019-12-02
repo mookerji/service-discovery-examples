@@ -1,0 +1,54 @@
+digraph {
+    node [shape = Mrecord, fontname = Helvetica, fontsize = 12];
+    edge [fontname = Helvetica, fontsize = 12];
+    style = "rounded";
+    rankdir = "TB";
+    label = "Consul-based Service Registry";
+    fontname = Helvetica;
+
+    client [label = "HTTP client"];
+    client -> proxy [label = "query()"];
+
+    subgraph cluster_proxy {
+       label = "HTTP Proxy\n\nroutes = / , /healthz, /statusz,\n/services/[service_name],\n/_hooks/reload/config";
+       labelloc = "b";
+       fontname = Helvetica;
+       proxy [label = "proxy\naddr = 192.168.1.4:8080"];
+       watcher [label = "watcher\n(cmd: consul-template)"];
+       config_data [label = "volume:config_data\nconfig = /consul-template/data/proxy.yaml"];
+    }
+
+    watcher -> registry;
+    watcher -> config_data  [label = "write_config()"];
+    proxy -> config_data [label = "read_config()"];
+    watcher -> proxy [label = "reload_config()"];
+
+    subgraph cluster_registry {
+       label = "Consul Registry";
+       labelloc = "b";
+       fontname = Helvetica;
+       registry [label = "<write> registry (primary)"];
+       registry_replicas [label = "{registry1 (replica) | registry2 (replica)}"];
+       registry -> registry_replicas  [label = "replicate()"];
+    }
+
+    subgraph cluster_app1 {
+       labelloc = "b";
+       label = "Nodes/replicas (App1)\n\nroutes = / , /healthz";
+       fontname = Helvetica;
+       app1 [label = "{app1_1\naddr = 192.168.1.0:80 | app1_2\naddr = 192.168.1.1:80}"];
+    }
+    app1 -> registry:write [label = "register()"];
+    registry -> app1 [label = "health()"];
+    proxy -> app1 [label = "query()"];
+
+    subgraph cluster_app2 {
+       labelloc = "b";
+       label = "Nodes/replicas (App2)\n\nroutes = / , /healthz";
+       fontname = Helvetica;
+       app2 [label = "{app2_1\naddr = 192.168.1.2:80 | app2_2\naddr = 192.168.1.3:80}"];
+    }
+    app2 -> registry:write [label = "register()"];
+    registry -> app2 [label = "health()"];
+    proxy -> app2 [label = "query()"];
+}

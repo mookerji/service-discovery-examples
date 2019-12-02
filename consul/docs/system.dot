@@ -1,16 +1,20 @@
 digraph {
+    node [shape = Mrecord, fontname = Helvetica, fontsize = 12];
+    edge [fontname = Helvetica, fontsize = 12];
     style = "rounded";
     rankdir = "TB";
-    node [shape = record, fontname = Helvetica, fontsize = 12];
-    edge [fontname = Helvetica, fontsize = 12];
+    label = "Consul-based Service Registry";
+    fontname = Helvetica;
 
     client [label = "HTTP client"];
     client -> proxy;
 
     subgraph cluster_proxy {
        label = "HTTP Proxy";
+       labelloc = "b";
+       fontname = Helvetica;
        proxy [label = "proxy\nroutes = / , /healthz, /statusz, /services"];
-       watcher [label = "watcher"];
+       watcher [label = "watcher\n(cmd: consul-template)"];
        config_data [label = "volume:config_data"];
     }
 
@@ -20,15 +24,18 @@ digraph {
 
     subgraph cluster_registry {
        label = "Consul Registry";
+       labelloc = "b";
+       fontname = Helvetica;
        registry_write [label = "registry (primary)\n /services/register"];
        registry_read [label = "registry (primary)\n /services"];
     }
 
     subgraph cluster_app1 {
-       rankdir = "TB";
+       labelloc = "b";
        label = "Nodes/replicas (App1)";
-       app1_1 [label = "app1_1\nroutes = / , /healthz"];
-       app1_2 [label = "app1_2\nroutes = / , /healthz"];
+       fontname = Helvetica;
+       app1_1 [label = "app1_1:80\nroutes = / , /healthz"];
+       app1_2 [label = "app1_2:80\nroutes = / , /healthz"];
     }
     app1_1 -> registry_write [label = "register()"];
     app1_2 -> registry_write [label = "register()"];
@@ -37,9 +44,11 @@ digraph {
     proxy -> app1_1 [label = "query()"];
 
     subgraph cluster_app2 {
+       labelloc = "b";
        label = "Nodes/replicas (App2)";
-       app2_1 [label = "app2_1\nroutes = / , /healthz"];
-       app2_2 [label = "app2_2\nroutes = / , /healthz"];
+       fontname = Helvetica;
+       app2_1 [label = "app2_1:80\nroutes = / , /healthz"];
+       app2_2 [label = "app2_2:80\nroutes = / , /healthz"];
     }
     app2_1 -> registry_write [label = "register()"];
     app2_2 -> registry_write [label = "register()"];
